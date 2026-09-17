@@ -17,6 +17,7 @@ outputs/
 *.xls
 *.docx
 *.png
+!docs/screenshots/*.png
 *.pdf
 
 # Dashboard build helpers

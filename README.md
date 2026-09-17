@@ -5,6 +5,14 @@ monthly cash-flow (תזרים) analysis: a formula-driven Excel workbook, an int
 and a Hebrew PDF report — for any number of months, at three depth levels (overview / standard /
 deep). Everything runs locally with Claude Code.
 
+## Screenshots
+
+![Synthetic demo data](docs/screenshots/workbook-expenses.png)
+![Synthetic demo data](docs/screenshots/dashboard.png)
+
+All data shown is synthetic (generated demo household, invented merchants and amounts); see also the
+interactive [`פילוח` sheet](docs/screenshots/workbook-filter.png).
+
 ## Install
 
 - **claude.ai / Claude app:** download `tazrim-analysis.zip` from the [latest release](../../releases/latest) and upload it in **Settings → Capabilities** (Skills → Upload skill).
@@ -23,6 +31,14 @@ deep). Everything runs locally with Claude Code.
 ```
 
 The skill guides the folder layout, asks a few methodology questions once, and builds the outputs.
+
+## Analysis levels
+
+| Level | What it asks of you | What you get |
+|---|---|---|
+| `overview` | Only the setup questions; no per-transaction labelling (unknowns are lumped into "אחר / לא מזוהה") | Basic workbook (expenses / incomes by category × month + analysis sheet), short report, no dashboard |
+| `standard` | Setup questions + one round of labelling in the "לסיווג ידני" sheet for what could not be classified | Full workbook (interactive filtering, per-category detail, transactions, transfers / P2P sheet), dashboard, full report |
+| `deep` | Several labelling rounds with free-text notes that Claude interprets, web research on unknown merchants, trip attribution | Everything in `standard` plus the secondary category-scheme sheet, per-trip blocks and a findings / recommendations section in the report |
 
 ## Outputs
 
