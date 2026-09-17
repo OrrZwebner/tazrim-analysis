@@ -1,6 +1,6 @@
 {
   "name": "tazrim-analysis",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Turns Israeli household bank and credit-card exports into a monthly cash-flow (תזרים) analysis: parses bank account (עובר ושב) exports (.xlsx/.xls), credit-card monthly statements (פירוט אשראי, .xlsx/.xls), a benefits-club export (.docx) and P2P transfer apps (BIT / PayBox); classifies every transaction; builds a formula-driven Excel workbook with a \"לסיווג ידני\" sheet for the user's own labels, an interactive dashboard.html and a Hebrew RTL PDF report. Use for \"ניתוח תזרים\", \"ניתוח הוצאות והכנסות\", \"cash-flow analysis\", \"Israeli bank exports\", \"פירוט אשראי\", \"עובר ושב\", \"כרטיס אשראי\", \"BIT\", \"לסיווג ידני\", any number of months, at overview / standard / deep level.",
   "author": {
     "name": "Orr Zwebner"

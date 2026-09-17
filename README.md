@@ -22,19 +22,19 @@ All data shown is synthetic (a generated four-person household, invented merchan
 
 ## Install
 
-- **Claude app — Cowork (recommended) / claude.ai:** download `tazrim-analysis.zip` from the [latest release](../../releases/latest) and upload it in **Settings → Capabilities → Skills → Upload skill**. Then, in the Claude desktop app, open **Cowork**, pick the folder with your exports as the working folder, and paste the prompt below — the skill runs the scripts there.
+- **Claude app — Cowork (recommended) / claude.ai:** download `tazrim-analysis.zip` from the [latest release](../../releases/latest) and upload it in **Settings → Capabilities → Skills → Upload skill**. Then, in the Claude desktop app, open **Cowork**, pick a working folder (the outputs are written there), and paste the prompt below.
 - **Claude Code (plugin):** `/plugin marketplace add OrrZwebner/tazrim-analysis` then `/plugin install tazrim-analysis`.
 - **Claude Code (manual):** copy `skills/tazrim-analysis/` into `~/.claude/skills/`.
 
 ## Usage
 
-1. Download the exports from your bank and credit-card sites into one folder: one עובר ושב export per
-   account for the period, and one monthly פירוט אשראי file per billing cycle.
-2. Open that folder in **Cowork** (Claude desktop app) or run Claude Code inside it.
-3. Paste this prompt — it invokes the skill (fill in the placeholders):
+1. Download the exports from your bank and credit-card sites into a folder (anywhere on your disk): one
+   עובר ושב export per account for the period, and one monthly פירוט אשראי file per billing cycle.
+2. Open **Cowork** (Claude desktop app) or Claude Code.
+3. Paste this prompt — it invokes the skill; fill in the two folder paths and the placeholders:
 
 ```
-/tazrim-analysis נתח את התזרים שלי לפי הקבצים בתיקייה הזו לתקופה <חודש התחלה>–<חודש סיום>, ברמה <overview / standard / deep>
+/tazrim-analysis נתח את התזרים שלי. קבצי הבנק וכרטיסי האשראי נמצאים בתיקייה <נתיב לתיקיית הקבצים>; שמור את הפלטים בתיקייה <נתיב לתיקיית הפלט>. תקופה: <חודש התחלה>–<חודש סיום>, רמה: <overview / standard / deep>
 ```
 
 The skill guides the folder layout, asks a few methodology questions once, and builds the outputs.

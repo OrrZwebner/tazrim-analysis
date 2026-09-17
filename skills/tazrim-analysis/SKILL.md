@@ -15,7 +15,7 @@ compatibility: >
   Microsoft Excel 365 to open the workbook (dynamic arrays); macOS + Excel for the recalculation
   gate (pandas-only fallback elsewhere, reported as skipped); Google Chrome or Chromium for the PDF.
 metadata:
-  version: 0.1.3
+  version: 0.1.4
   language: he/en
   author: Orr Zwebner
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch
@@ -36,7 +36,12 @@ diagnostics on stderr and exactly one JSON object on stdout; `{"ok": false, "err
 
 ## 1. Where to save which files
 
-Create this tree in the user's project folder before anything else:
+The user's prompt may name two folders: where the exports already are (`<input folder>`) and where
+the outputs should go (`<project>`). They need not be the same folder. Treat `<project>` as the project
+folder (it holds `tazrim.config.json`, `rules/`, `work/`, `outputs/`); if the exports live elsewhere,
+do NOT move them — point every `files` glob in the config at their absolute path (globs may be
+absolute) and keep the `inputs/` tree below only as the reference layout. If the user names one
+folder only, it is both. Create this tree in `<project>` before anything else:
 
 ```
 <project>/

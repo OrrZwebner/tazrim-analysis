@@ -12,8 +12,8 @@ Outputs : outputs/dashboard.html; ONE JSON object on stdout:
           {"ok", "dashboard", "bytes", "rows", "cols", "source", "chartjs", "tabs", "level"}.
 Exit    : 0 ok; 1 neither workbook nor database.csv readable; 2 config error.
 
-Tabs: סקירה (KPIs incl. no-zero average, drill-down group → category → merchant → rows, charts) ·
-עסקאות (DEFAULT — every row × every column: free-text search, type chips, window/summed toggles,
+Tabs: סקירה (DEFAULT — KPIs incl. no-zero average, drill-down group → category → merchant → rows, charts
+with value labels) · עסקאות (every row × every column: free-text search, type chips, window/summed toggles,
 date/amount ranges, per-column filters, column chooser, sortable headers, row modal with linked row
 and same-merchant list, pivot, CSV export) · העברות, BIT ו-PAYBOX · הכנסות · לסיווג (points at the
 Excel sheet) · עזרה (3-line usage box). overview level drops the transfers and לסיווג tabs.
@@ -669,7 +669,7 @@ function makeMulti(id, set, optsFn, opts){ const c = makeMultiEl(document.getEle
 
 /* ---------- tabs ---------- */
 function showTab(name){
-  if (!META.tabs.includes(name)) name = 'explore';
+  if (!META.tabs.includes(name)) name = 'overview';
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.tab===name));
   document.querySelectorAll('.tab').forEach(t=>{ t.hidden = (t.id !== 'tab-'+name); });
   if (name==='overview') refresh();
@@ -836,9 +836,56 @@ function renderTxnTable(rows){
 }
 
 /* ---------- charts ---------- */
+/* Inline Chart.js plugin (no external dependency; works in cdn and inline modes): values above bars
+   (horizontal bars: right of the bar end; stacked bars: stack total + per-segment when tall enough) and
+   percentages inside pie/doughnut slices (slices < minPct are unlabeled; amount stays in the tooltip).
+   Per chart: options.plugins.valueLabels = {enabled:false} | {segments:false} | {minPct:0.04}. */
+const VALUE_LABELS = {
+  id: 'valueLabels',
+  afterDatasetsDraw(chart, _args, opts){
+    const o = Object.assign({enabled:true, segments:true, minPct:0.04, fontSize:12, color:'#3a3935'}, opts||{});
+    if (!o.enabled) return;
+    const ctx = chart.ctx, horiz = chart.options.indexAxis==='y', dss = chart.data.datasets;
+    const sc = chart.options.scales||{}, stacked = !!((sc.y&&sc.y.stacked)||(sc.x&&sc.x.stacked)||dss.some(d=>d.stack));
+    const num = v => nf0.format(Math.round(v));
+    ctx.save();
+    ctx.font = '600 '+o.fontSize+'px '+(Chart.defaults.font.family||'sans-serif');
+    ctx.fillStyle = o.color; ctx.strokeStyle = 'rgba(255,255,255,.92)'; ctx.lineWidth = 3; ctx.lineJoin = 'round';
+    const put = (t,x,y,align,base) => { ctx.textAlign=align; ctx.textBaseline=base; ctx.strokeText(t,x,y); ctx.fillText(t,x,y); };
+    const stackTop = {}, stackSum = {};
+    dss.forEach((ds,i)=>{
+      if (!chart.isDatasetVisible(i)) return;
+      const meta = chart.getDatasetMeta(i);
+      if (meta.type==='doughnut' || meta.type==='pie'){
+        const total = meta.data.reduce((s,el,j)=> s + (chart.getDataVisibility(j) ? Math.abs(ds.data[j]||0) : 0), 0);
+        meta.data.forEach((el,j)=>{
+          if (!total || !chart.getDataVisibility(j)) return;
+          const p = Math.abs(ds.data[j]||0)/total; if (p < o.minPct) return;
+          const pos = el.tooltipPosition(); put(Math.round(p*100)+'%', pos.x, pos.y, 'center', 'middle');
+        });
+        return;
+      }
+      if (meta.type!=='bar') return;
+      meta.data.forEach((el,j)=>{
+        const v = ds.data[j]; if (v==null || isNaN(v) || v===0) return;
+        if (stacked){
+          stackSum[j] = (stackSum[j]||0) + v;
+          const top = v>=0 ? Math.min(el.y, el.base) : Math.max(el.y, el.base);
+          const t = stackTop[j]; stackTop[j] = t ? {x:el.x, y: v>=0 ? Math.min(t.y, top) : Math.max(t.y, top)} : {x:el.x, y:top};
+          if (o.segments && Math.abs(el.y-el.base) >= o.fontSize+6) put(num(v), el.x, (el.y+el.base)/2, 'center', 'middle');
+          return;
+        }
+        if (horiz){ if (v>=0) put(num(v), el.x+4, el.y, 'left', 'middle'); else put(num(v), el.x-4, el.y, 'right', 'middle'); }
+        else { if (v>=0) put(num(v), el.x, el.y-4, 'center', 'bottom'); else put(num(v), el.x, el.y+4, 'center', 'top'); }
+      });
+    });
+    if (stacked && !horiz) Object.keys(stackTop).forEach(j=>{ const t=stackTop[j], s=stackSum[j]; if (!s) return; if (s>=0) put(num(s), t.x, t.y-4, 'center', 'bottom'); else put(num(s), t.x, t.y+4, 'center', 'top'); });
+    ctx.restore();
+  }
+};
 function chartCommon(){
-  return { responsive:true, maintainAspectRatio:false,
-    plugins:{ legend:{rtl:true, textDirection:'rtl', labels:{boxWidth:10, boxHeight:10, usePointStyle:true}},
+  return { responsive:true, maintainAspectRatio:false, layout:{padding:{top:18}},
+    plugins:{ valueLabels:{enabled:true}, legend:{rtl:true, textDirection:'rtl', labels:{boxWidth:10, boxHeight:10, usePointStyle:true}},
               tooltip:{rtl:true, textDirection:'rtl', callbacks:{label:(c)=> (c.dataset.label?c.dataset.label+': ':'') + fmt(c.chart.config.options.indexAxis==='y' ? c.parsed.x : (c.parsed.y!==undefined ? c.parsed.y : c.parsed)) }} },
     scales:{} };
 }
@@ -846,9 +893,10 @@ function makeChart(id, cfg){
   if (!HAS_CHART) return;
   const cv = document.getElementById(id);
   if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  cfg.plugins = (cfg.plugins||[]).concat(VALUE_LABELS);
   try { charts[id] = new Chart(cv.getContext('2d'), cfg); } catch(e){ console.error('chart error', id, e); }
 }
-function axisMoney(){ return { grid:{color:'#e1e0d9'}, border:{display:false}, ticks:{color:'#898781', callback:v=>nf0.format(v)} }; }
+function axisMoney(){ return { grace:'8%', grid:{color:'#e1e0d9'}, border:{display:false}, ticks:{color:'#898781', callback:v=>nf0.format(v)} }; }
 function axisCat(){ return { grid:{display:false}, border:{color:'#c3c2b7'}, ticks:{color:'#52514e'} }; }
 function renderCharts(rows){
   if (!HAS_CHART){ document.querySelectorAll('#tab-overview .chartbox').forEach(b=>{ b.innerHTML='<div class="nochart">Chart.js לא נטען (אין חיבור לאינטרנט) — הטבלאות עובדות כרגיל.</div>'; }); return; }
@@ -871,11 +919,11 @@ function renderCharts(rows){
   const agg = aggregate(rows, key).sort((a,b)=>b.avg-a.avg).slice(0,20);
   document.getElementById('tLevel').textContent = LEVEL_LABEL[Math.min(lvl,3)] + ' — לפי ממוצע חודשי (20 המובילים)';
   const c2 = chartCommon(); c2.indexAxis='y'; c2.scales={x:Object.assign(axisMoney(),{beginAtZero:true, position:'top'}), y:Object.assign(axisCat(),{ticks:{color:'#0b0b0b', autoSkip:false, font:{size:12}}})};
-  c2.plugins.legend.display=false; c2.plugins.tooltip.callbacks.label = c => 'ממוצע חודשי: '+fmt(c.parsed.x);
+  c2.layout.padding = {top:4, right:48}; c2.plugins.legend.display=false; c2.plugins.tooltip.callbacks.label = c => 'ממוצע חודשי: '+fmt(c.parsed.x);
   makeChart('cLevel', {type:'bar', data:{labels:agg.map(a=>a.name), datasets:[{data:agg.map(a=>Math.round(a.avg)), backgroundColor:PALETTE[0], borderRadius:4, borderSkipped:'start', maxBarThickness:18}]}, options:c2});
   const byP = sumBy(rows, r=>r.pay||'(ריק)');
   const pays = Object.entries(byP).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
-  const c3 = chartCommon(); delete c3.scales; c3.cutout='58%'; c3.plugins.legend.position='bottom';
+  const c3 = chartCommon(); delete c3.scales; c3.layout.padding = {top:4}; c3.cutout='58%'; c3.plugins.legend.position='bottom';
   const pTotal = pays.reduce((s,e)=>s+e[1],0);
   c3.plugins.tooltip.callbacks.label = c => c.label+': '+fmt(c.parsed)+' ('+pct(pTotal?c.parsed/pTotal:0)+')';
   makeChart('cPay', {type:'doughnut', data:{labels:pays.map(e=>e[0]), datasets:[{data:pays.map(e=>Math.round(e[1])), backgroundColor:pays.map((e,i)=> i<8?PALETTE[i]:OTHER_COLOR), borderColor:'#fcfcfb', borderWidth:2}]}, options:c3});
@@ -890,7 +938,7 @@ function renderCharts(rows){
   rows.forEach(r=>{ const k=r[sKey]||'(ריק)'; const i=mi[r.month]; if(i==null) return; if(series[k]) series[k][i]+=r.amount||0; else { series[OTHER][i]+=r.amount||0; hasOther=true; } });
   const sds = top.map((t,i)=>({label:t, data:series[t].map(Math.round), backgroundColor:PALETTE[i], stack:'s', borderColor:'#fcfcfb', borderWidth:{top:2,bottom:0,left:0,right:0}, maxBarThickness:48}));
   if (hasOther) sds.push({label:OTHER, data:series[OTHER].map(Math.round), backgroundColor:OTHER_COLOR, stack:'s', borderColor:'#fcfcfb', borderWidth:{top:2,bottom:0,left:0,right:0}, maxBarThickness:48});
-  const c4 = chartCommon(); c4.scales={x:Object.assign(axisCat(),{stacked:true}), y:Object.assign(axisMoney(),{stacked:true, beginAtZero:true})}; c4.plugins.tooltip.mode='index';
+  const c4 = chartCommon(); c4.scales={x:Object.assign(axisCat(),{stacked:true}), y:Object.assign(axisMoney(),{stacked:true, beginAtZero:true})}; c4.plugins.tooltip.mode='index'; c4.plugins.valueLabels = {enabled:true, segments:false};
   makeChart('cStack', {type:'bar', data:{labels, datasets:sds}, options:c4});
 }
 function onToggle(){
@@ -1324,7 +1372,7 @@ function init(){
   document.querySelectorAll('#tabs button').forEach(b => b.addEventListener('click', ()=> showTab(b.dataset.tab)));
   document.querySelectorAll('[data-go]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); showTab(a.dataset.go); }));
   const h = (location.hash||'').replace('#','');
-  showTab(META.tabs.includes(h) ? h : 'explore');
+  showTab(META.tabs.includes(h) ? h : 'overview');
 }
 document.addEventListener('DOMContentLoaded', init);
 </script>
