@@ -31,10 +31,10 @@ All data shown is synthetic (a generated four-person household, invented merchan
 1. Download the exports from your bank and credit-card sites into one folder: one עובר ושב export per
    account for the period, and one monthly פירוט אשראי file per billing cycle.
 2. Open that folder in **Cowork** (Claude desktop app) or run Claude Code inside it.
-3. Paste this prompt (fill in the placeholders):
+3. Paste this prompt — it invokes the skill (fill in the placeholders):
 
 ```
-נתח את התזרים שלי לפי הקבצים בתיקייה הזו לתקופה <חודש התחלה>–<חודש סיום>, ברמה <overview / standard / deep>
+/tazrim-analysis נתח את התזרים שלי לפי הקבצים בתיקייה הזו לתקופה <חודש התחלה>–<חודש סיום>, ברמה <overview / standard / deep>
 ```
 
 The skill guides the folder layout, asks a few methodology questions once, and builds the outputs.
