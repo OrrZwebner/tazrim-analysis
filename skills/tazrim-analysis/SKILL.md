@@ -15,7 +15,7 @@ compatibility: >
   Microsoft Excel 365 to open the workbook (dynamic arrays); macOS + Excel for the recalculation
   gate (pandas-only fallback elsewhere, reported as skipped); Google Chrome or Chromium for the PDF.
 metadata:
-  version: 0.1.2
+  version: 0.1.3
   language: he/en
   author: Orr Zwebner
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion, WebSearch

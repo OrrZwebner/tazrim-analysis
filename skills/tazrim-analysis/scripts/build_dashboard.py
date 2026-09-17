@@ -861,7 +861,7 @@ function renderCharts(rows){
   if (isExp && noCatFilter){
     const inc = baseRows().filter(r=>r.type===INC && state.months.has(r.month));
     const byI = sumBy(inc, r=>r.month);
-    ds.push({type:'line', label:'הכנסות (כל ההכנסות)', data: months.map(m=>Math.round(byI[m]||0)), borderColor:PALETTE[2], backgroundColor:PALETTE[2], borderWidth:2, pointRadius:4, pointBorderColor:'#fcfcfb', pointBorderWidth:2, tension:0.25});
+    ds.push({type:'bar', label:'הכנסות (כל ההכנסות)', data: months.map(m=>Math.round(byI[m]||0)), backgroundColor:PALETTE[2], borderRadius:4, borderSkipped:'start', maxBarThickness:48});
     title = 'הוצאות מול הכנסות לפי חודש';
   }
   document.getElementById('tMonthly').textContent = title;

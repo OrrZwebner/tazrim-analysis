@@ -1,17 +1,24 @@
 # tazrim-analysis
 
 A Claude skill that turns your Israeli bank and credit-card exports (עובר ושב, פירוט אשראי) into a
-monthly cash-flow (תזרים) analysis: a formula-driven Excel workbook, an interactive HTML dashboard
-and a Hebrew PDF report — for any number of months, at three depth levels (overview / standard /
-deep). Everything runs locally with Claude Code.
+monthly cash-flow (תזרים) analysis:
+
+- a formula-driven Excel workbook;
+- an interactive HTML dashboard;
+- a Hebrew PDF report.
+
+Any number of months, three depth levels (overview / standard / deep); everything runs locally with Claude Code.
 
 ## Demo (synthetic data)
 
-![Synthetic demo data](docs/screenshots/workbook-expenses.png)
-![Synthetic demo data](docs/screenshots/dashboard.png)
+**[▶ Open the interactive demo dashboard](https://orrzwebner.github.io/tazrim-analysis/demo/dashboard.html)** — synthetic data, opens in the browser.
 
-All data shown is synthetic (generated demo household, invented merchants and amounts); see also the
-interactive [`פילוח` sheet](docs/screenshots/workbook-filter.png).
+[![Demo dashboard (synthetic data)](docs/screenshots/dashboard.png)](https://orrzwebner.github.io/tazrim-analysis/demo/dashboard.html)
+![Demo workbook, expenses sheet (synthetic data)](docs/screenshots/workbook-expenses.png)
+
+More: [category detail](docs/screenshots/workbook-category-detail.png) · [database](docs/screenshots/workbook-database.png) · [analysis charts](docs/screenshots/workbook-analysis.png).
+
+All data shown is synthetic (a generated four-person household, invented merchants and amounts — not any real one).
 
 ## Install
 
@@ -39,6 +46,8 @@ The skill guides the folder layout, asks a few methodology questions once, and b
 | `overview` | Only the setup questions; no per-transaction labelling (unknowns are lumped into "אחר / לא מזוהה") | Basic workbook (expenses / incomes by category × month + analysis sheet), short report, no dashboard |
 | `standard` | Setup questions + one round of labelling in the "לסיווג ידני" sheet for what could not be classified | Full workbook (interactive filtering, per-category detail, transactions, transfers / P2P sheet), dashboard, full report |
 | `deep` | Several labelling rounds with free-text notes that Claude interprets, web research on unknown merchants, trip attribution | Everything in `standard` plus the secondary category-scheme sheet, per-trip blocks and a findings / recommendations section in the report |
+
+Categories come from a generic, editable default scheme (`skills/tazrim-analysis/references/category-scheme-default.csv`) or from your own template workbook.
 
 ## Outputs
 
