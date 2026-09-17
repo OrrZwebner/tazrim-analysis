@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Packaging / release artifacts (releases carry archives; never commit them)
+*.skill
+*.zip
+
+# OS
+.DS_Store
+
+# Project run directories and user data (never commit a household's data)
+work/
+outputs/
+*.xlsx
+*.xls
+*.docx
+*.png
+*.pdf
+
+# Dashboard build helpers
+node_modules/

@@ -1,0 +1,193 @@
+{
+  "_comment": "SYNTHETIC example of tazrim.config.json. Every value here is invented: two people p1/p2, a joint account (format A), a second account (format B) owned by p2, two cards in a cycle-format file, one card with a per-card statement, one benefits program, one BIT entry. Copy to <project>/tazrim.config.json and edit. Paths are relative to the project folder. See references/config-schema.md.",
+  "language": "he",
+  "analysis_level": "standard",
+  "window": {
+    "start": "2025-01-01",
+    "end": "2025-02-28",
+    "month_rule": "charge_date"
+  },
+  "household": {
+    "label": "משק בית לדוגמה",
+    "people": [
+      {
+        "id": "p1",
+        "label": "בן/בת זוג א'"
+      },
+      {
+        "id": "p2",
+        "label": "בן/בת זוג ב'"
+      }
+    ],
+    "shared_label": "משותף (עו\"ש)"
+  },
+  "accounts": [
+    {
+      "id": "bank_a",
+      "bank": "bank_xlsx_a",
+      "label": "עו\"ש חשבון א'",
+      "owner": "shared",
+      "files": "inputs/bank/bank_a/*.xlsx"
+    },
+    {
+      "id": "bank_b",
+      "bank": "bank_xls_b",
+      "label": "עו\"ש חשבון ב'",
+      "owner": "p2",
+      "files": "inputs/bank/bank_b/*.xls*",
+      "opening_balance": 3000.0
+    }
+  ],
+  "cards": [
+    {
+      "id": "card_1234",
+      "issuer": "card_cycle_xlsx",
+      "last4": "1234",
+      "label": "ויזה 1234",
+      "owner": "p1",
+      "files": "inputs/cards/card_cycle/card_*.xlsx",
+      "settles_from": "bank_a",
+      "bank_debit_pattern": "חיוב לכרטיס ויזה 1234",
+      "cycle_day": 10,
+      "fx_settlement": {
+        "currency": "USD",
+        "transfer_pattern": "העברה לחשבון מט\"ח"
+      }
+    },
+    {
+      "id": "card_5678",
+      "issuer": "card_cycle_xlsx",
+      "last4": "5678",
+      "label": "ויזה 5678",
+      "owner": "p2",
+      "files": "inputs/cards/card_cycle/card_*.xlsx",
+      "settles_from": "bank_a",
+      "bank_debit_pattern": "חיוב לכרטיס ויזה 5678",
+      "cycle_day": 10,
+      "fx_settlement": {
+        "currency": "EUR"
+      }
+    },
+    {
+      "id": "card_9012",
+      "issuer": "card_blocks_xls",
+      "last4": "9012",
+      "label": "מאסטרקארד 9012",
+      "owner": "p2",
+      "files": "inputs/cards/card_9012/9012_*.xls*",
+      "settles_from": "bank_b",
+      "bank_debit_pattern": "9012 - כרטיס אשראי",
+      "cycle_day": 2,
+      "reconstruct_missing_cycles": false
+    }
+  ],
+  "benefit_programs": [
+    {
+      "id": "club",
+      "issuer": "club_docx",
+      "label": "מועדון הטבות",
+      "owner": "p2",
+      "files": "inputs/benefits/club/*.docx",
+      "settles_from": "bank_b",
+      "bank_debit_pattern": "חיוב מועדון הטבות",
+      "default_debit_day": 2
+    }
+  ],
+  "p2p": [
+    {
+      "id": "bit_p1",
+      "app": "BIT",
+      "owner": "p1",
+      "csv": "inputs/p2p/bit_p1.csv",
+      "screenshots": "inputs/p2p/bit_p1/*.png",
+      "card_marker": "BIT",
+      "match_days": 5,
+      "match_tolerance": 0.01,
+      "bank_withdrawal_pattern": "משיכה מ-BIT"
+    }
+  ],
+  "categories": {
+    "scheme": "default",
+    "from_template": {
+      "file": "inputs/template/תזרים.xlsx",
+      "sheet": "הכנסות - הוצאות",
+      "groups_col": "A",
+      "cats_col": "B",
+      "first_row": 2,
+      "last_row": 7
+    },
+    "secondary_scheme": null
+  },
+  "rules": {
+    "merchant_rules": "rules/merchant_rules.csv",
+    "user_labels": "rules/user_labels.csv",
+    "user_labels_interpreted": "rules/user_labels_interpreted.csv",
+    "fx_overrides": "rules/fx_overrides.csv"
+  },
+  "fixed_categories": [
+    "שכר דירה",
+    "ועד בית"
+  ],
+  "estimates": [
+    {
+      "id": "cash_est",
+      "name": "הוצאות במזומן (הערכה)",
+      "amount": 250,
+      "every_n_months": 1,
+      "day": 15,
+      "cat": "מזומן",
+      "group": "שונות",
+      "note": "הערכה חודשית שהוזנה ידנית",
+      "funded_by_cat": null
+    }
+  ],
+  "trips": [
+    {
+      "label": "נסיעה לדוגמה",
+      "start": "2025-02-10",
+      "end": "2025-02-14",
+      "countries": [
+        "ארצות הברית",
+        "USA"
+      ]
+    }
+  ],
+  "fx": {
+    "rates_dir": "work/boi_rates",
+    "source": "boi_sdmx",
+    "manual_rates": null
+  },
+  "work": {
+    "dir": "work",
+    "normalized": "work/normalized",
+    "database": "work/database.csv",
+    "summary": "work/summary.json",
+    "findings": "work/findings.json",
+    "figures": "work/figures"
+  },
+  "notes": {
+    "dir": "notes",
+    "decisions": "notes/decisions.md",
+    "questions_and_answers": "notes/questions_and_answers.md"
+  },
+  "outputs": {
+    "workbook": "outputs/תזרים.xlsx",
+    "dashboard": "outputs/dashboard.html",
+    "report_html": "work/report.html",
+    "report_pdf": "outputs/דוח.pdf"
+  },
+  "verify": {
+    "excel_recalc": "auto"
+  },
+  "dashboard": {
+    "chartjs": "cdn"
+  },
+  "thresholds": {
+    "highlight_expense_avg": 3000,
+    "highlight_income_avg": 12000,
+    "dynamic_merchant_rows": 250,
+    "dynamic_txn_rows": 500,
+    "top_merchants": 25,
+    "hyperlink_rows": 45
+  }
+}

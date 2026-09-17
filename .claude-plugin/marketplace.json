@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tazrim-analysis",
+  "owner": {
+    "name": "Orr Zwebner"
+  },
+  "metadata": {
+    "description": "Local marketplace for the tazrim-analysis plugin.",
+    "version": "0.1.2"
+  },
+  "plugins": [
+    {
+      "name": "tazrim-analysis",
+      "description": "Monthly cash-flow (תזרים) analysis of Israeli household bank and credit-card exports: parsers, classification, formula-driven Excel workbook, dashboard and Hebrew RTL report.",
+      "source": "./",
+      "strict": false
+    }
+  ]
+}

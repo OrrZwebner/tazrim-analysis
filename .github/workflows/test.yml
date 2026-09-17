@@ -1,0 +1,138 @@
+name: test
+
+# Runs the tazrim-analysis test suite and the synthetic fixture pipeline on every push and
+# pull request to main. Everything here is SYNTHETIC: make_fixtures.py invents the data and
+# expected.json holds hand-derived literals (see CONTRIBUTING.md).
+#
+# Two checks can only run on a Mac with Microsoft Excel / a local Chrome and are therefore
+# reported as SKIPPED on CI — never as passed:
+#   * Excel recalculation of the workbook (verify.excel_recalc = never here)
+#   * Chrome PDF rendering of the report (render_pdf.sh)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 3.8 is end-of-life; actions/setup-python still ships it for ubuntu-22.04 runners.
+          - python-version: "3.8"
+            os: ubuntu-22.04
+          - python-version: "3.12"
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      SCRIPTS: skills/tazrim-analysis/scripts
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pinned dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Structural checks (py_compile every script, bash -n the shell script)
+        run: |
+          set -euo pipefail
+          for f in "$SCRIPTS"/*.py "$SCRIPTS"/tests/*.py; do
+            python -m py_compile "$f"
+          done
+          bash -n "$SCRIPTS/render_pdf.sh"
+          # SKILL.md must open with YAML frontmatter and stay under 500 lines
+          test "$(head -c 3 skills/tazrim-analysis/SKILL.md)" = "---"
+          test "$(wc -l < skills/tazrim-analysis/SKILL.md)" -lt 500
+          python -c "import json; json.load(open('.claude-plugin/plugin.json'))"
+          echo "structural checks passed"
+
+      - name: "Unit tests (Excel gate stays skipped - TAZRIM_TEST_EXCEL is unset)"
+        run: |
+          python -m unittest discover -s "$SCRIPTS/tests" -v
+
+      - name: Fixture pipeline (mode A, verify.excel_recalc=never) into a temp dir
+        run: |
+          set -euo pipefail
+          FIX="$(mktemp -d)"
+          echo "FIX=$FIX" >> "$GITHUB_ENV"
+          python "$SCRIPTS/make_fixtures.py" --out "$FIX" > "$FIX/make_fixtures.out.json"
+          # Force the Excel recalculation off explicitly, whatever the fixture config says.
+          python - "$FIX/tazrim.config.json" <<'PY'
+          import json, sys
+          p = sys.argv[1]
+          cfg = json.load(open(p, encoding="utf-8"))
+          cfg.setdefault("verify", {})["excel_recalc"] = "never"
+          json.dump(cfg, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          PY
+          python "$SCRIPTS/run_pipeline.py" --config "$FIX/tazrim.config.json" --mode A > "$FIX/pipeline.out.json"
+
+      - name: Assert pipeline JSON, reconciliation residual and hand-derived totals
+        run: |
+          python - "$FIX" <<'PY'
+          import json, os, sys
+          fix = sys.argv[1]
+          CUR = 0.01    # currency tolerance (ILS): sums of 2-decimal amounts
+          RATIO = 1e-5  # ratio tolerance: dimensionless quantities (rates, shares)
+
+          pipe = json.load(open(os.path.join(fix, "pipeline.out.json"), encoding="utf-8"))
+          assert pipe["ok"] is True, "run_pipeline reported ok=false: %s" % pipe.get("stopped_at")
+          bad = [s["name"] for s in pipe["steps"] if s.get("status") != "ok"]
+          assert not bad, "steps not ok: %s" % bad
+          assert len(pipe["steps"]) == 12, "expected 12 pipeline steps, got %d" % len(pipe["steps"])
+
+          # The verify step must report its Excel checks as SKIPPED on CI, never as ran/passed.
+          ver = next(s for s in pipe["steps"] if s["name"] == "verify")["result"]
+          assert ver["excel_recalc"]["ran"] is False, "Excel recalculation must not run on CI"
+          assert ver["summary"]["fail"] == 0, "verify failures: %s" % [c for c in ver["checks"] if c["status"] == "fail"]
+          assert ver["summary"]["skipped"] >= 1, "expected the Excel checks to be reported as skipped"
+          print("verify: pass=%d fail=%d skipped=%d (skipped = Excel-only checks)" % (
+              ver["summary"]["pass"], ver["summary"]["fail"], ver["summary"]["skipped"]))
+
+          summ = json.load(open(os.path.join(fix, "work", "summary.json"), encoding="utf-8"))
+          exp = json.load(open(os.path.join(fix, "expected.json"), encoding="utf-8"))
+
+          # Identity: the reconciliation residual must close to zero (currency tolerance).
+          resid = float(summ["recon"]["residual"])
+          assert abs(resid) <= CUR, "reconciliation residual %.4f exceeds %.2f" % (resid, CUR)
+
+          # Hand-derived literals from expected.json (never recorded from the code).
+          assert summ["months"] == exp["window"]["months"], summ["months"]
+          assert abs(float(summ["total_income"]) - exp["classify"]["income_in_window"]) <= CUR, summ["total_income"]
+          assert abs(float(summ["total_expenses"]) - exp["classify"]["expense_in_window_if_all_unknowns_are_expenses"]) <= CUR, summ["total_expenses"]
+          # Identity: balance == income - expenses.
+          assert abs(float(summ["balance_total"]) - (float(summ["total_income"]) - float(summ["total_expenses"]))) <= CUR
+          # Ratio (dimensionless, RATIO tolerance): savings_rate = balance / income, published
+          # rounded to 2 decimals. Derived here from the expected.json literals, not from summary.json:
+          # (8060 - 4535) / 8060 = 0.4373... -> 0.44.
+          inc = exp["classify"]["income_in_window"]
+          want = round((inc - exp["classify"]["expense_in_window_if_all_unknowns_are_expenses"]) / inc, 2)
+          assert abs(float(summ["savings_rate"]) - want) <= RATIO, (summ["savings_rate"], want)
+
+          for name in ("outputs/dashboard.html", "work/report.html", "work/database.csv"):
+              p = os.path.join(fix, name)
+              assert os.path.exists(p) and os.path.getsize(p) > 0, "missing output: %s" % name
+          xl = [f for f in os.listdir(os.path.join(fix, "outputs")) if f.endswith(".xlsx")]
+          assert xl, "no workbook in outputs/"
+          print("assertions passed: residual=%.2f income=%.2f expenses=%.2f" % (
+              resid, float(summ["total_income"]), float(summ["total_expenses"])))
+          PY
+
+      - name: Excel recalculation and Chrome PDF (SKIPPED on CI)
+        run: |
+          {
+            echo "### Skipped on CI (Python ${{ matrix.python-version }})"
+            echo "- Excel recalculation gate: **skipped** — needs macOS + Microsoft Excel (run \`TAZRIM_TEST_EXCEL=1 python3 -m unittest tests.test_verify\` locally)."
+            echo "- Chrome PDF render (render_pdf.sh): **skipped** — not executed on CI; run \`render_pdf.sh work/report.html\` locally."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "SKIPPED: Excel recalculation gate (needs macOS + Excel)"
+          echo "SKIPPED: Chrome PDF render (render_pdf.sh not executed on CI)"
