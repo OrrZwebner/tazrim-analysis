@@ -5,7 +5,7 @@ monthly cash-flow (תזרים) analysis: a formula-driven Excel workbook, an int
 and a Hebrew PDF report — for any number of months, at three depth levels (overview / standard /
 deep). Everything runs locally with Claude Code.
 
-## Screenshots
+## Demo (synthetic data)
 
 ![Synthetic demo data](docs/screenshots/workbook-expenses.png)
 ![Synthetic demo data](docs/screenshots/dashboard.png)
@@ -15,7 +15,7 @@ interactive [`פילוח` sheet](docs/screenshots/workbook-filter.png).
 
 ## Install
 
-- **claude.ai / Claude app:** download `tazrim-analysis.zip` from the [latest release](../../releases/latest) and upload it in **Settings → Capabilities** (Skills → Upload skill).
+- **Claude app — Cowork (recommended) / claude.ai:** download `tazrim-analysis.zip` from the [latest release](../../releases/latest) and upload it in **Settings → Capabilities → Skills → Upload skill**. Then, in the Claude desktop app, open **Cowork**, pick the folder with your exports as the working folder, and paste the prompt below — the skill runs the scripts there.
 - **Claude Code (plugin):** `/plugin marketplace add OrrZwebner/tazrim-analysis` then `/plugin install tazrim-analysis`.
 - **Claude Code (manual):** copy `skills/tazrim-analysis/` into `~/.claude/skills/`.
 
@@ -23,7 +23,7 @@ interactive [`פילוח` sheet](docs/screenshots/workbook-filter.png).
 
 1. Download the exports from your bank and credit-card sites into one folder: one עובר ושב export per
    account for the period, and one monthly פירוט אשראי file per billing cycle.
-2. Open Claude Code in that folder.
+2. Open that folder in **Cowork** (Claude desktop app) or run Claude Code inside it.
 3. Paste this prompt (fill in the placeholders):
 
 ```
