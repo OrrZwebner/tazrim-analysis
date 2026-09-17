@@ -487,9 +487,10 @@ code{background:#eeede8;padding:1px 6px;border-radius:4px;direction:ltr;unicode-
   <div class="card"><h2 id="tStack">פילוח חודשי לפי קבוצה</h2><div class="chartbox"><canvas id="cStack"></canvas></div></div>
 </section>
 <section class="grid2">
-  <div class="card"><h2 id="tLevel">לפי ממוצע חודשי</h2><div class="chartbox tall"><canvas id="cLevel"></canvas></div></div>
+  <div class="card"><h2 id="tCatPie">פילוח לפי קבוצה</h2><div class="chartbox tall"><canvas id="cCatPie"></canvas></div></div>
   <div class="card"><h2>לפי אמצעי תשלום</h2><div class="chartbox tall"><canvas id="cPay"></canvas></div></div>
 </section>
+<section class="card"><h2 id="tLevel">לפי ממוצע חודשי</h2><div class="chartbox tall"><canvas id="cLevel"></canvas></div></section>
 <section class="card" id="drill">
   <div class="crumbs" id="crumbs"></div>
   <p class="hint" id="hint"></p>
@@ -921,6 +922,15 @@ function renderCharts(rows){
   const c2 = chartCommon(); c2.indexAxis='y'; c2.scales={x:Object.assign(axisMoney(),{beginAtZero:true, position:'top'}), y:Object.assign(axisCat(),{ticks:{color:'#0b0b0b', autoSkip:false, font:{size:12}}})};
   c2.layout.padding = {top:4, right:48}; c2.plugins.legend.display=false; c2.plugins.tooltip.callbacks.label = c => 'ממוצע חודשי: '+fmt(c.parsed.x);
   makeChart('cLevel', {type:'bar', data:{labels:agg.map(a=>a.name), datasets:[{data:agg.map(a=>Math.round(a.avg)), backgroundColor:PALETTE[0], borderRadius:4, borderSkipped:'start', maxBarThickness:18}]}, options:c2});
+  const pieAgg = aggregate(rows, key).filter(a=>a.total>0).sort((a,b)=>b.total-a.total);
+  const pieTop = pieAgg.slice(0,9), pieRest = pieAgg.slice(9).reduce((s,a)=>s+a.total,0);
+  const pieLabels = pieTop.map(a=>a.name).concat(pieRest>0?['אחר']:[]);
+  const pieData = pieTop.map(a=>Math.round(a.total)).concat(pieRest>0?[Math.round(pieRest)]:[]);
+  document.getElementById('tCatPie').textContent = 'פילוח לפי '+LEVEL_LABEL[Math.min(lvl,3)]+' — חלק מסה"כ ההוצאות';
+  const c5 = chartCommon(); delete c5.scales; c5.layout.padding = {top:4}; c5.cutout='58%'; c5.plugins.legend.position='bottom';
+  const pieTotal = pieData.reduce((s,v)=>s+v,0);
+  c5.plugins.tooltip.callbacks.label = c => c.label+': '+fmt(c.parsed)+' ('+pct(pieTotal?c.parsed/pieTotal:0)+')';
+  makeChart('cCatPie', {type:'doughnut', data:{labels:pieLabels, datasets:[{data:pieData, backgroundColor:pieLabels.map((l,i)=> l==='אחר'?OTHER_COLOR:PALETTE[i%PALETTE.length]), borderColor:'#fcfcfb', borderWidth:2}]}, options:c5});
   const byP = sumBy(rows, r=>r.pay||'(ריק)');
   const pays = Object.entries(byP).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
   const c3 = chartCommon(); delete c3.scales; c3.layout.padding = {top:4}; c3.cutout='58%'; c3.plugins.legend.position='bottom';

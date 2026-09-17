@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Local marketplace for the tazrim-analysis plugin.",
-    "version": "0.1.4"
+    "version": "0.1.5"
   },
   "plugins": [
     {
